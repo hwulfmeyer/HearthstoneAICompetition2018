@@ -66,6 +66,9 @@ namespace SabberStoneCoreAi.Agent.ExampleAgents
 			else
 				return options[0];
 		}
-		
-	}
+
+        public override void FinalizeGame(PlayState playState)
+        {
+        }
+    }
 }

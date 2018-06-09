@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using SabberStoneCore.Config;
 using SabberStoneCore.Enums;
@@ -65,7 +65,6 @@ namespace SabberStoneCoreAi.POGame
 					currentStopwatch.Start();
 					playertask = currentAgent.GetMove(poGame);
 					currentStopwatch.Stop();
-
 					game.CurrentPlayer.Game = game;
 					game.CurrentOpponent.Game = game;
 
@@ -89,12 +88,10 @@ namespace SabberStoneCoreAi.POGame
 
 			if (game.State == State.INVALID)
 				return false;
-
 			if (addToGameStats)
 				gameStats.addGame(game, watches);
-
-			player1.FinalizeGame();
-			player2.FinalizeGame();
+			player1.FinalizeGame(game.CurrentPlayer == game.Player1 ? game.CurrentPlayer.PlayState : game.CurrentOpponent.PlayState);
+			player2.FinalizeGame(!(game.CurrentPlayer == game.Player1) ? game.CurrentPlayer.PlayState : game.CurrentOpponent.PlayState);
 			return true;
 		}
 

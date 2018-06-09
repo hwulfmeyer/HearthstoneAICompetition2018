@@ -39,5 +39,9 @@ namespace SabberStoneCoreAi.Agent.ExampleAgents
 		{
 			//Nothing to do here
 		}
-	}
+
+        public override void FinalizeGame(PlayState playState)
+        {
+        }
+    }
 }

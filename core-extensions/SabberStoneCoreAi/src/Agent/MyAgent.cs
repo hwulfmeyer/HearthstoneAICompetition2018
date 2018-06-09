@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using SabberStoneCore.Enums;
 using SabberStoneCore.Tasks;
 using SabberStoneCoreAi.Agent;
 using SabberStoneCoreAi.POGame;
 
-namespace SabberStoneCoreAi.src.Agent
+namespace SabberStoneCoreAi.Agent
 {
 	class MyAgent : AbstractAgent
 	{
@@ -15,13 +16,22 @@ namespace SabberStoneCoreAi.src.Agent
 		{
 		}
 
+		public override void FinalizeGame(PlayState playState)
+		{
+			Console.WriteLine("MyAgent: " + playState.ToString());
+		}
+
 		public override void FinalizeGame()
 		{
 		}
 
 		public override PlayerTask GetMove(SabberStoneCoreAi.POGame.POGame poGame)
 		{
-			return poGame.CurrentPlayer.Options()[0];
+			PlayerTask playerTask;
+			List<PlayerTask> options = poGame.CurrentPlayer.Options();
+			playerTask = options[Rnd.Next(options.Count)];
+
+			return playerTask;
 		}
 
 		public override void InitializeAgent()

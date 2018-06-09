@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using SabberStoneCore.Enums;
 using SabberStoneCore.Tasks;
 using SabberStoneCoreAi.POGame;
 
@@ -32,5 +33,9 @@ namespace SabberStoneCoreAi.Agent
 		{
 			throw new NotImplementedException();
 		}
-	}
+
+        public override void FinalizeGame(PlayState playState)
+        {
+        }
+    }
 }
