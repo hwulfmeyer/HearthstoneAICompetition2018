@@ -25,34 +25,37 @@ namespace SabberStoneCoreAi
 		/// </summary>
 		/// <param name="args"></param>
 		private static void Main(string[] args)
-		{		
-			Console.WriteLine("Setup gameConfig");
+		{
+			int numberOfGamesGames = 5;
 
-			GameConfig gameConfig = new GameConfig
+			for(int i = 0; i< numberOfGamesGames; i++)
 			{
-				StartPlayer = -1,
-				//Player1Deck = Decks.AllDecks(),
-				//Player2Deck = Decks.AllDecks(),
-				FillDecks = true,
-				Shuffle = true,
-				FillDecksPredictably = true,
-				Logging = false
-			};
+				//Console.WriteLine("Setup gameConfig");
 
-			Console.WriteLine("Setup POGameHandler");
-			AbstractAgent player1 = new MyAgent();
-			AbstractAgent player2 = new MyAgent();
-			var gameHandler = new POGameHandler(gameConfig, player1, player2, debug:false);
-			Console.WriteLine("PlayGame");
-			var watch = System.Diagnostics.Stopwatch.StartNew();
-			gameHandler.PlayGames(1000);
-			watch.Stop();
-			GameStats gameStats = gameHandler.getGameStats();
+				GameConfig gameConfig = new GameConfig
+				{
+					StartPlayer = 2,
+					Player1Deck = Decks.MidrangeJadeShaman,
+					Player2Deck = Decks.MidrangeJadeShaman,
+					//FillDecks = true,
+					Shuffle = false,
+					Logging = false
+				};
 
-			gameStats.printResults();
+				//Console.WriteLine("Setup POGameHandler");
+				AbstractAgent player1 = new RandomAgent(); gameConfig.Player1Name = "Player1";
+				AbstractAgent player2 = new RandomAgent(); gameConfig.Player2Name = "Player2";
+				var gameHandler = new POGameHandler(gameConfig, player1, player2, debug: false);
+				//Console.WriteLine("PlayGame");
+				var watch = System.Diagnostics.Stopwatch.StartNew();
+				gameHandler.PlayGames(300);
+				watch.Stop();
+				GameStats gameStats = gameHandler.getGameStats();
 
-			Console.WriteLine("Test successful: It took " + (float)watch.Elapsed.TotalSeconds + " Seconds");
+				gameStats.printResults();
 
+				//Console.WriteLine("Test successful: It took " + ((float)watch.Elapsed.TotalSeconds).ToString("F2") + " Seconds");
+			}
 
 			Console.ReadLine();
 		}
