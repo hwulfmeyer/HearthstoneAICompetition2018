@@ -1,7 +1,7 @@
 # Decks: #
- * Decks.AggroPirateWarrior = A
- * Decks.RenoKazakusMage = B
- * Decks.MidrangeJadeShaman = C
+ * Decks.AggroPirateWarrior
+ * Decks.RenoKazakusMage
+ * Decks.MidrangeJadeShaman
  * 1 Unknown
  
 # Boardstate
@@ -36,3 +36,17 @@ For Player only:
  * hand.attack
  * hand.crystals_cost
  * hand.hp
+	
+	## Methods for the Prediction Model
+	### Outline:
+	* high dimensional data (~40 dimensions/Attributes)
+	* large data set (~1.000.000 instances)
+	### Goal:
+	* broadly: Classification
+	* specific: Likelihood of winning when in boardstate x
+	
+	### Methods:
+	* Convolutional Neural Network
+	* Random Forests
+	* Ensemble Methods (Train each Method with a random sample of 100.000 instances)
+	* Information: https://annals-csis.org/Volume_11/drp/pdf/573.pdf
