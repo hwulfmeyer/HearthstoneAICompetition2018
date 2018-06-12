@@ -50,3 +50,10 @@ For Player only:
 * Random Forests
 * Ensemble Methods (Train each Method with a random sample of 100.000 instances)
 * Information: https://annals-csis.org/Volume_11/drp/pdf/573.pdf
+
+## Method for Data Mining
+# Random Agents
+* let 2 Random agents play against each other
+* random heroclass
+* random deck
+* shuffle deck in the beginning
