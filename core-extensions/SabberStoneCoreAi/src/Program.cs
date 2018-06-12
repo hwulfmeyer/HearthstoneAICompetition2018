@@ -34,11 +34,13 @@ namespace SabberStoneCoreAi
 
 				GameConfig gameConfig = new GameConfig
 				{
-					StartPlayer = 2,
-					Player1Deck = Decks.MidrangeJadeShaman,
-					Player2Deck = Decks.MidrangeJadeShaman,
-					//FillDecks = true,
-					Shuffle = false,
+					StartPlayer = 1,
+					Player1HeroClass = CardClass.MAGE,
+					Player2HeroClass = CardClass.MAGE,
+					//Player1Deck = Decks.MidrangeJadeShaman,
+					//Player2Deck = Decks.MidrangeJadeShaman,
+					FillDecks = true,
+					Shuffle = true,
 					Logging = false
 				};
 
