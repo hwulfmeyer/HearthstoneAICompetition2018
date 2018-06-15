@@ -26,39 +26,54 @@ namespace SabberStoneCoreAi
 		/// <param name="args"></param>
 		private static void Main(string[] args)
 		{
-			int numberOfGamesGames = 5;
-
-			for(int i = 0; i< numberOfGamesGames; i++)
+			int numberOfGamesGames = 1000;
+			int filesToWrite = 30;
+			var Rnd = new Random();
+			var watch = System.Diagnostics.Stopwatch.StartNew();
+			int exceptioncounter = 0;
+			int turnsPlayed = 0;
+			for (int k = 0; k < filesToWrite; k++)
 			{
-				//Console.WriteLine("Setup gameConfig");
-
-				GameConfig gameConfig = new GameConfig
+				for (int i = 0; i < numberOfGamesGames; i++)
 				{
-					StartPlayer = 1,
-					Player1HeroClass = CardClass.MAGE,
-					Player2HeroClass = CardClass.MAGE,
-					//Player1Deck = Decks.MidrangeJadeShaman,
-					//Player2Deck = Decks.MidrangeJadeShaman,
-					FillDecks = true,
-					Shuffle = true,
-					Logging = false
-				};
 
-				//Console.WriteLine("Setup POGameHandler");
-				AbstractAgent player1 = new RandomAgent(); gameConfig.Player1Name = "Player1";
-				AbstractAgent player2 = new RandomAgent(); gameConfig.Player2Name = "Player2";
-				var gameHandler = new POGameHandler(gameConfig, player1, player2, debug: false);
-				//Console.WriteLine("PlayGame");
-				var watch = System.Diagnostics.Stopwatch.StartNew();
-				gameHandler.PlayGames(300);
-				watch.Stop();
-				GameStats gameStats = gameHandler.getGameStats();
+					//Console.WriteLine("Setup gameConfig");
+					try
+					{
+						GameConfig gameConfig = new GameConfig
+						{
+							StartPlayer = -1,
+							Player1HeroClass = (CardClass)Rnd.Next(3, 11),
+							Player2HeroClass = (CardClass)Rnd.Next(3, 11),
+							//Player1Deck = Decks.MidrangeJadeShaman,
+							//Player2Deck = Decks.MidrangeJadeShaman,
+							FillDecks = true,
+							Shuffle = true,
+							FillDecksPredictably = true,
+							Logging = false
+						};
 
-				gameStats.printResults();
+						AbstractAgent player1 = new RandomAgentWriteData(""); /*("trainingdata_chunk_"+k+".json");*/ gameConfig.Player1Name = "Player1";
+						AbstractAgent player2 = new RandomAgentWriteData(""); gameConfig.Player2Name = "Player2";
+						var gameHandler = new POGameHandler(gameConfig, player1, player2, debug: false);
+						gameHandler.PlayGames(1, true);
 
-				//Console.WriteLine("Test successful: It took " + ((float)watch.Elapsed.TotalSeconds).ToString("F2") + " Seconds");
+						turnsPlayed += gameHandler.getGameStats().TurnsPlayed;
+						
+					}
+					catch
+					{
+						exceptioncounter++;
+						Console.Write("Ex:" + exceptioncounter + " ");
+						i--;
+					}
+					if (i % 100 == 0)
+					{
+						Console.WriteLine("\t" + watch.Elapsed.TotalMinutes.ToString("F2") + "min \t\tCount:" + i);
+					}
+				}
+				Console.WriteLine("Done  Turns:" + turnsPlayed);
 			}
-
 			Console.ReadLine();
 		}
 	}

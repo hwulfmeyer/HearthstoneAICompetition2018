@@ -75,6 +75,14 @@ namespace SabberStoneCoreAi.POGame
 
 		}
 
+		public int TurnsPlayed
+		{
+			get
+			{
+				return this.turns;
+			}
+		}
+
 		public int GamesPlayed
 		{
 			get
