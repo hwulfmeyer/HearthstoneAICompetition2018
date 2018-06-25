@@ -34,7 +34,36 @@ namespace SabberStoneCoreAi.Agent
 		public override PlayerTask GetMove(SabberStoneCoreAi.POGame.POGame poGame)
 		{
 			List<PlayerTask> options = poGame.CurrentPlayer.Options();
+			poGame.Simulate(options);
 			return options[Rnd.Next(options.Count)];
+		}
+	}
+
+
+	class NodeMCTS
+	{
+		public int N;   // Number of visits
+		public int Q;   // Number of victories
+		public NodeMCTS prt;	// parent
+		public List<NodeMCTS> chdr; // children
+
+
+		public NodeMCTS(NodeMCTS parent = null)
+		{
+			prt = parent;
+			chdr = new List<NodeMCTS>();
+		}
+
+
+		public bool IsRoot
+		{
+			get { return prt.Equals(null); }
+		}
+
+
+		public bool IsLeaf
+		{
+			get { return chdr.Count == 0; }
 		}
 	}
 
