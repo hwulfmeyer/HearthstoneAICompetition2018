@@ -7,7 +7,7 @@ using SabberStoneCore.Model.Entities;
 namespace SabberStoneCoreAi.Score
 {
 	public class ControlScore : SabberStoneCoreAi.Score.Score
-	{
+	{//test
 		public override int Rate()
 		{
 			if (OpHeroHp < 1)

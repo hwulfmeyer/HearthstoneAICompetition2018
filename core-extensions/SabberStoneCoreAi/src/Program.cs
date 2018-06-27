@@ -52,8 +52,8 @@ namespace SabberStoneCoreAi
 							Logging = false
 						};
 
-						AbstractAgent player1 = new RandomAgentWriteData("trainingdata_chunk_"+k+".json"); gameConfig.Player1Name = "Player1";
-						AbstractAgent player2 = new RandomAgentWriteData(""); gameConfig.Player2Name = "Player2";
+						AbstractAgent player1 = new MyAgent("trainingdata_chunk_"+k+".json"); gameConfig.Player1Name = "Player1";
+						AbstractAgent player2 = new RandomAgent(); gameConfig.Player2Name = "Player2";
 						var gameHandler = new POGameHandler(gameConfig, player1, player2, debug: false);
 						gameHandler.PlayGames(1, true);
 
