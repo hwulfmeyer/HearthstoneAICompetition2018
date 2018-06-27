@@ -59,7 +59,7 @@ namespace SabberStoneCoreAi.Agent
 		public override PlayerTask GetMove(POGame.POGame poGame)
 		{
 			//return GetMoveRandom(poGame);
-			return GetMoveSearchTree(poGame, 1);
+			return GetMoveSearchTree(poGame, 2);
 		}
 
 
@@ -74,16 +74,14 @@ namespace SabberStoneCoreAi.Agent
 
 		public PlayerTask GetMoveSearchTree(POGame.POGame poGame, int depth)
 		{
+			var root = new NodeGameState(poGame);
 			if (ListPlayerTasksToDo.Count == 0)
 			{
-				var root = new NodeGameState(poGame);
 				root.IDDFS(depth);
 				ListPlayerTasksToDo = root.GetPlayerTasks();
 			}
 			return ListPlayerTasksToDo.Dequeue();
 		}
-
-
 
 		public void WriteToFile(PlayState playState)
 		{
@@ -124,7 +122,7 @@ namespace SabberStoneCoreAi.Agent
 		public PlayerTask task;
 		public bool isEnemyNode;
 		public bool WasExpanded;
-		public float value;
+		public float score;
 
 		public NodeGameState(POGame.POGame poGame, PlayerTask task = null,  NodeGameState parent = null)
 		{
@@ -148,7 +146,7 @@ namespace SabberStoneCoreAi.Agent
 
 		public bool IsRoot
 		{
-			get { return prt.Equals(null); }
+			get { return prt == null; }
 		}
 
 
@@ -224,30 +222,24 @@ namespace SabberStoneCoreAi.Agent
 		/// <returns></returns>
 		internal Queue<PlayerTask> GetPlayerTasks()
 		{
-			MiniMax();
-			Queue<PlayerTask> que = GetPlayerTasksMinimax();
-			return que;
+			score = MiniMax();
+			return GetPlayerTasksMinimax();
 		}
 
 		private Queue<PlayerTask> GetPlayerTasksMinimax()
 		{
 			var que = new Queue<PlayerTask>();
-			if(isEnemyNode != prt.isEnemyNode)
+			if(!IsRoot) que.Enqueue(task);
+			if (!IsLeaf)
 			{
-				return que;
-			}
-
-			que.Enqueue(task);
-			if (IsLeaf)
-			{
-				return que;
-			}
-			else
-			{
-				IOrderedEnumerable<NodeGameState> orderedChildren = chdr.OrderByDescending(p => p.value);
+				IOrderedEnumerable<NodeGameState> orderedChildren = chdr.OrderByDescending(p => p.score);
 				//Min if true, Max if false
 				NodeGameState nextNode = isEnemyNode ? orderedChildren.Last() : orderedChildren.First();
-				que.Concat(nextNode.GetPlayerTasksMinimax());
+				Queue<PlayerTask> queueTail = nextNode.GetPlayerTasksMinimax();
+				while(queueTail.Count > 0)
+				{
+					que.Enqueue(queueTail.Dequeue());
+				}
 			}
 
 			return que;
@@ -261,27 +253,32 @@ namespace SabberStoneCoreAi.Agent
 		{
 			if (IsLeaf)
 			{
-				value = SelectionPolicy();
+				return SelectionPolicy();
 			}
 			else
 			{
+				foreach (NodeGameState child in chdr)
+				{
+					child.score = child.MiniMax();
+				}
+
+
 				if (isEnemyNode)
 				{
 					//Minimize
-					value = chdr.Min(chdr => MiniMax());
+					return chdr.Min(chdr => chdr.score);
 				}
 				else
 				{
 					//Maximize
-					value = chdr.Max(chdr => MiniMax());
+					return chdr.Max(chdr => chdr.score);
 				}
 			}
-			return value;
 		}
 
 		private float SelectionPolicy()
 		{
-			var score = new Score.ControlScore
+			var score = new Score.AggroScore
 			{
 				Controller = isEnemyNode? game.CurrentOpponent : game.CurrentPlayer
 			};
