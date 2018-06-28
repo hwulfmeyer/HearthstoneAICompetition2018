@@ -9,6 +9,7 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using SabberStoneCore.Model;
+using System.Diagnostics;
 
 namespace SabberStoneCoreAi.Agent
 {
@@ -51,7 +52,7 @@ namespace SabberStoneCoreAi.Agent
 		public override void FinalizeGame(PlayState playState)
 		{
 			ListPlayerTasksToDo = new Queue<PlayerTask>();
-			Console.WriteLine(playState);
+			Console.WriteLine(playState==PlayState.WON?1:0);
 			WriteToFile(playState);
 		}
 
@@ -74,9 +75,10 @@ namespace SabberStoneCoreAi.Agent
 
 		public PlayerTask GetMoveSearchTree(POGame.POGame poGame, int depth)
 		{
-			var root = new NodeGameState(poGame);
 			if (ListPlayerTasksToDo.Count == 0)
 			{
+				ListPlayerTasksToDo = new Queue<PlayerTask>();
+				var root = new NodeGameState(poGame.getCopy());
 				root.IDDFS(depth);
 				ListPlayerTasksToDo = root.GetPlayerTasks();
 			}
@@ -119,6 +121,7 @@ namespace SabberStoneCoreAi.Agent
 		public NodeGameState prt;	// parent
 		public List<NodeGameState> chdr; // children
 		public POGame.POGame game; //gamestate of the note
+		int PlayerId;
 		public PlayerTask task;
 		public bool isEnemyNode;
 		public bool WasExpanded;
@@ -128,12 +131,12 @@ namespace SabberStoneCoreAi.Agent
 		{
 			chdr = new List<NodeGameState>();
 			prt = parent;
-			game = poGame;
+			game = poGame.getCopy();
 			this.task = task;
 			WasExpanded = false;
-
+			PlayerId = game.CurrentPlayer.PlayerId;
 			if (parent == null) isEnemyNode = false; // root is always MyPlayer
-			else if(game.CurrentPlayer.PlayerId != parent.game.CurrentPlayer.PlayerId)
+			else if(PlayerId != parent.PlayerId)
 			{
 				isEnemyNode = !parent.isEnemyNode;
 			}
@@ -161,8 +164,14 @@ namespace SabberStoneCoreAi.Agent
 		/// </summary>
 		public void IDDFS(int maxDepth)
 		{
+			var watch = Stopwatch.StartNew();
 			for (int i=0;i< maxDepth; i++)
 			{
+				if(watch.Elapsed.TotalSeconds > 2.0d)
+				{
+					//Console.WriteLine(watch.Elapsed.TotalSeconds);
+					//break;
+				}
 				DLS();
 			}
 		}
@@ -262,7 +271,6 @@ namespace SabberStoneCoreAi.Agent
 					child.score = child.MiniMax();
 				}
 
-
 				if (isEnemyNode)
 				{
 					//Minimize
@@ -278,9 +286,9 @@ namespace SabberStoneCoreAi.Agent
 
 		private float SelectionPolicy()
 		{
-			var score = new Score.AggroScore
+			var score = new Score.ControlScore
 			{
-				Controller = isEnemyNode? game.CurrentOpponent : game.CurrentPlayer
+				Controller = isEnemyNode ? game.CurrentOpponent : game.CurrentPlayer
 			};
 			return score.Rate();
 		}
@@ -292,7 +300,7 @@ namespace SabberStoneCoreAi.Agent
 
 			foreach (KeyValuePair<PlayerTask, POGame.POGame> item in dict)
 			{
-				//poGame is null if exception happens
+				//poGame is null if exception occurs
 				if(item.Value != null)
 				{
 					chdr.Add(new NodeGameState(item.Value, item.Key, this));

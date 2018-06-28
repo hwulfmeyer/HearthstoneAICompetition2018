@@ -26,8 +26,8 @@ namespace SabberStoneCoreAi
 		/// <param name="args"></param>
 		private static void Main(string[] args)
 		{
-			int numberOfGamesGames = 2000;
-			int filesToWrite = 30;
+			int numberOfGamesGames = 100;
+			int filesToWrite = 1;
 			var Rnd = new Random();
 			var watch = System.Diagnostics.Stopwatch.StartNew();
 			int exceptioncounter = 0;
@@ -53,9 +53,9 @@ namespace SabberStoneCoreAi
 						};
 
 						AbstractAgent player1 = new MyAgent("trainingdata_chunk_"+k+".json"); gameConfig.Player1Name = "Player1";
-						AbstractAgent player2 = new RandomAgent(); gameConfig.Player2Name = "Player2";
+						AbstractAgent player2 = new RandomAgentLateEnd(); gameConfig.Player2Name = "Player2";
 						var gameHandler = new POGameHandler(gameConfig, player1, player2, debug: false);
-						gameHandler.PlayGames(1, true);
+						gameHandler.PlayGames(5, true);
 
 						turnsPlayed += gameHandler.getGameStats().TurnsPlayed;
 						
@@ -66,7 +66,7 @@ namespace SabberStoneCoreAi
 						Console.Write("Ex:" + exceptioncounter + " ");
 						i--;
 					}
-					if (i % 100 == 0)
+					if (i % 100 == 0 && i!=0)
 					{
 						Console.WriteLine("\t" + watch.Elapsed.TotalMinutes.ToString("F2") + "min \t\tCount:" + i);
 					}
