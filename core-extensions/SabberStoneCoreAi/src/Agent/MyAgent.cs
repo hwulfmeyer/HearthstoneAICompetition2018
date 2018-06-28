@@ -11,19 +11,14 @@ using System.Linq;
 using SabberStoneCore.Model;
 using System.Diagnostics;
 
+
 namespace SabberStoneCoreAi.Agent
 {
 	class MyAgent : AbstractAgent
 	{
-		private string filename = "";
 		private Random Rnd = new Random();
-		private List<MyScoreJsonFormat> ListMyScoreJsonFormat = new List<MyScoreJsonFormat>();
 		private Queue<PlayerTask> ListPlayerTasksToDo;
 
-		public MyAgent(string fname)
-		{
-			filename = fname;
-		}
 
 		public override void InitializeGame()
 		{
@@ -33,7 +28,6 @@ namespace SabberStoneCoreAi.Agent
 		public override void InitializeAgent()
 		{
 			Rnd = new Random();
-			ListMyScoreJsonFormat = new List<MyScoreJsonFormat>();
 			ListPlayerTasksToDo = new Queue<PlayerTask>();
 		}
 
@@ -45,15 +39,13 @@ namespace SabberStoneCoreAi.Agent
 
 		public override void FinalizeGame()
 		{
-			ListPlayerTasksToDo = new Queue<PlayerTask>();
 		}
 
 
 		public override void FinalizeGame(PlayState playState)
 		{
-			ListPlayerTasksToDo = new Queue<PlayerTask>();
 			Console.WriteLine(playState==PlayState.WON?1:0);
-			WriteToFile(playState);
+			ListPlayerTasksToDo = new Queue<PlayerTask>();
 		}
 
 
@@ -67,50 +59,30 @@ namespace SabberStoneCoreAi.Agent
 		public PlayerTask GetMoveRandom(POGame.POGame poGame)
 		{
 			List<PlayerTask> options = poGame.CurrentPlayer.Options();
-			var state = new MyScoreJsonFormat(poGame);
-			ListMyScoreJsonFormat.Add(state);
 			return options[Rnd.Next(options.Count)];
 		}
 
 
 		public PlayerTask GetMoveSearchTree(POGame.POGame poGame, int depth)
 		{
-			if (ListPlayerTasksToDo.Count == 0)
+			if (poGame.CurrentPlayer.Options().Count == 1)
 			{
-				ListPlayerTasksToDo = new Queue<PlayerTask>();
-				var root = new NodeGameState(poGame.getCopy());
-				root.IDDFS(depth);
-				ListPlayerTasksToDo = root.GetPlayerTasks();
+				return poGame.CurrentPlayer.Options().First();
 			}
-			return ListPlayerTasksToDo.Dequeue();
-		}
-
-		public void WriteToFile(PlayState playState)
-		{
-			if (filename != "")
+			else if(poGame.CurrentPlayer.Options().Count == 2)
 			{
-				foreach (MyScoreJsonFormat x in ListMyScoreJsonFormat)
+				return poGame.CurrentPlayer.Options()[1];
+			}
+			else
+			{
+				if (ListPlayerTasksToDo.Count == 0)
 				{
-					x.player_won = (int)playState == 4 ? 1 : (int)playState == 5 ? 0 : -1;
+					ListPlayerTasksToDo = new Queue<PlayerTask>();
+					var root = new NodeGameState(poGame);
+					root.IDDFS(depth);
+					ListPlayerTasksToDo = root.GetPlayerTasks();
 				}
-
-
-				foreach (MyScoreJsonFormat item in ListMyScoreJsonFormat)
-				{
-					using (FileStream fs = File.Open(@"C:\ttt\hai\" + filename, FileMode.Append))
-					using (var sw = new StreamWriter(fs))
-					using (JsonWriter jw = new JsonTextWriter(sw))
-					{
-						jw.Formatting = Formatting.None;
-						var serializer = new JsonSerializer();
-						serializer.Serialize(jw, item);
-						sw.Write("\n");
-						jw.Close();
-						sw.Close();
-						fs.Close();
-					}
-				}
-
+				return ListPlayerTasksToDo.Dequeue();
 			}
 		}
 	}
@@ -164,14 +136,8 @@ namespace SabberStoneCoreAi.Agent
 		/// </summary>
 		public void IDDFS(int maxDepth)
 		{
-			var watch = Stopwatch.StartNew();
 			for (int i=0;i< maxDepth; i++)
 			{
-				if(watch.Elapsed.TotalSeconds > 2.0d)
-				{
-					//Console.WriteLine(watch.Elapsed.TotalSeconds);
-					//break;
-				}
 				DLS();
 			}
 		}
@@ -235,25 +201,6 @@ namespace SabberStoneCoreAi.Agent
 			return GetPlayerTasksMinimax();
 		}
 
-		private Queue<PlayerTask> GetPlayerTasksMinimax()
-		{
-			var que = new Queue<PlayerTask>();
-			if(!IsRoot) que.Enqueue(task);
-			if (!IsLeaf)
-			{
-				IOrderedEnumerable<NodeGameState> orderedChildren = chdr.OrderByDescending(p => p.score);
-				//Min if true, Max if false
-				NodeGameState nextNode = isEnemyNode ? orderedChildren.Last() : orderedChildren.First();
-				Queue<PlayerTask> queueTail = nextNode.GetPlayerTasksMinimax();
-				while(queueTail.Count > 0)
-				{
-					que.Enqueue(queueTail.Dequeue());
-				}
-			}
-
-			return que;
-		}
-
 
 		/// <summary>
 		/// Minimax algorithm
@@ -270,7 +217,7 @@ namespace SabberStoneCoreAi.Agent
 				{
 					child.score = child.MiniMax();
 				}
-
+				
 				if (isEnemyNode)
 				{
 					//Minimize
@@ -284,6 +231,27 @@ namespace SabberStoneCoreAi.Agent
 			}
 		}
 
+
+		private Queue<PlayerTask> GetPlayerTasksMinimax()
+		{
+			var que = new Queue<PlayerTask>();
+			if (!IsRoot) que.Enqueue(task);
+			if (!IsLeaf)
+			{
+				IOrderedEnumerable<NodeGameState> orderedChildren = chdr.OrderByDescending(p => p.score);
+				//Min if true, Max if false
+				NodeGameState nextNode = isEnemyNode ? orderedChildren.Last() : orderedChildren.First();
+				Queue<PlayerTask> queueTail = nextNode.GetPlayerTasksMinimax();
+				while (queueTail.Count > 0)
+				{
+					que.Enqueue(queueTail.Dequeue());
+				}
+			}
+
+			return que;
+		}
+
+
 		private float SelectionPolicy()
 		{
 			var score = new Score.ControlScore
@@ -293,15 +261,17 @@ namespace SabberStoneCoreAi.Agent
 			return score.Rate();
 		}
 
+
 		private void Expand()
 		{
 			WasExpanded = true;
 			Dictionary<PlayerTask, POGame.POGame> dict = game.Simulate(game.CurrentPlayer.Options());
+			//set game to null so that it gets cleaned up faster by the gc to reduce needed memory
 
 			foreach (KeyValuePair<PlayerTask, POGame.POGame> item in dict)
 			{
 				//poGame is null if exception occurs
-				if(item.Value != null)
+				if (item.Value != null)
 				{
 					chdr.Add(new NodeGameState(item.Value, item.Key, this));
 				}
@@ -310,272 +280,53 @@ namespace SabberStoneCoreAi.Agent
 	}
 
 
-	class GameStateRepresentation
+	public class MyScore : Score.Score
 	{
-		public Dictionary<string, int> player = new Dictionary<string, int>();
-		public List<Dictionary<string, int>> player_boardcards = new List<Dictionary<string, int>>();
-		public List<List<Dictionary<string, int>>> player_handcards = new List<List<Dictionary<string, int>>>();
-
-		public Dictionary<string, int> opponent = new Dictionary<string, int>();
-		public List<Dictionary<string, int>> opponent_boardcards = new List<Dictionary<string, int>>();
-
-		public int player_won;
-
-
-		public GameStateRepresentation(POGame.POGame poGame)
+		public override int Rate()
 		{
-			player = new Dictionary<string, int>();
-			player.Add("BaseMana", poGame.CurrentPlayer.BaseMana);
-			player.Add("HeroArmor", poGame.CurrentPlayer.Hero.Armor);
-			player.Add("HeroAttackDamage", poGame.CurrentPlayer.Hero.AttackDamage);
-			player.Add("HeroIsFrozen", poGame.CurrentPlayer.Hero.IsFrozen ? 1 : -1);
-			player.Add("HeroIsImmune", poGame.CurrentPlayer.Hero.IsImmune ? 1 : -1);
-			player.Add("HeroHealth", poGame.CurrentPlayer.Hero.Health);
-			//more info on weapon?
+			if (OpHeroHp < 1)
+				return Int32.MaxValue;
 
-			opponent = new Dictionary<string, int>();
-			opponent.Add("BaseMana", poGame.CurrentOpponent.BaseMana);
-			opponent.Add("HeroArmor", poGame.CurrentOpponent.Hero.Armor);
-			opponent.Add("HeroAttackDamage", poGame.CurrentOpponent.Hero.AttackDamage);
-			opponent.Add("HeroIsFrozen", poGame.CurrentOpponent.Hero.IsFrozen ? 1 : -1);
-			opponent.Add("HeroIsImmune", poGame.CurrentOpponent.Hero.IsImmune ? 1 : -1);
-			opponent.Add("HeroHealth", poGame.CurrentOpponent.Hero.Health);
+			if (HeroHp < 1)
+				return Int32.MinValue;
 
-			player_boardcards = new List<Dictionary<string, int>>();
-			foreach (Minion x in poGame.CurrentPlayer.BoardZone)
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "AttackDamage", x.AttackDamage },
-					{ "HasCharge", x.HasCharge ? 1 : -1 },
-					{ "HasTaunt", x.HasTaunt ? 1 : -1 },
-					{ "HasBattleCry", x.HasBattleCry ? 1 : -1 },
-					{ "Health", x.Health},
-					{ "HasDeathrattle", x.HasDeathrattle ? 1 : -1 },
-					{ "ZonePosition", x.ZonePosition }
-				};
-				player_boardcards.Add(curcard);
-			}
+			int result = 0;
 
-			opponent_boardcards = new List<Dictionary<string, int>>();
-			foreach (Minion x in poGame.CurrentOpponent.BoardZone)
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "AttackDamage", x.AttackDamage },
-					{ "HasCharge", x.HasCharge ? 1 : -1 },
-					{ "HasTaunt", x.HasTaunt ? 1 : -1 },
-					{ "HasBattleCry", x.HasBattleCry ? 1 : -1 },
-					{ "Health", x.Health},
-					{ "HasDeathrattle", x.HasDeathrattle ? 1 : -1 },
-					{ "ZonePosition", x.ZonePosition }
-				};
-				opponent_boardcards.Add(curcard);
-			}
+			if (OpMinionTotHealthTaunt > 0)
+				result += OpMinionTotHealthTaunt * -100;
 
-			player_handcards = new List<List<Dictionary<string, int>>>();
+			if (OpBoardZone.Count == 0 && BoardZone.Count > 0)
+				result += 1000;
 
-			var handcards_minions = new List<Dictionary<string, int>>();
-			foreach (Minion x in poGame.CurrentPlayer.HandZone.OfType<Minion>())
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "Armor", x.Armor },
-					{ "AttackDamage", x.AttackDamage },
-					{ "HasCharge", x.HasCharge ? 1 : -1 },
-					{ "HasTaunt", x.HasTaunt ? 1 : -1 },
-					{ "Health", x.Health},
-					{ "HasDeathrattle", x.HasDeathrattle ? 1 : -1 }
-				};
-				handcards_minions.Add(curcard);
-			}
-			player_handcards.Add(handcards_minions);
+			if (OpMinionTotHealthTaunt > 0)
+				result += MinionTotHealthTaunt * -500;
 
+			result += (BoardZone.Count - OpBoardZone.Count) * 10;
 
-			var handcards_spells = new List<Dictionary<string, int>>();
-			foreach (Spell x in poGame.CurrentPlayer.HandZone.OfType<Spell>())
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "Id", x.Id}
-				};
-				handcards_minions.Add(curcard);
-			}
-			player_handcards.Add(handcards_spells);
+			result += MinionTotAtk * 10;
 
-			var handcards_weapons = new List<Dictionary<string, int>>();
-			foreach (Weapon x in poGame.CurrentPlayer.HandZone.OfType<Weapon>())
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "AttackDamage", x.AttackDamage },
-					{ "Durability", x.Durability},
-					{ "Damage", x.Damage}
+			result += (HeroHp - OpHeroHp) * 10;
 
-				};
-				handcards_minions.Add(curcard);
-			}
-			player_handcards.Add(handcards_weapons);
+			result += (MinionTotHealth - OpMinionTotHealth) * 10;
 
+			result += (MinionTotAtk - OpMinionTotAtk) * 10;
+
+			result += (MinionTotHealthTaunt - OpMinionTotHealthTaunt) * 25;
+
+			result += (BoardZone.Count - OpBoardZone.Count) * 5;
+
+			//result += Controller.RemainingMana * 5;
+
+			return result;
 		}
 
-		public void SetPlayerWon(PlayState playState)
+		public override Func<List<IPlayable>, List<int>> MulliganRule()
 		{
-			player_won = ((int)playState) == 4 ? 1 : ((int)playState) == 5 ? 0 : -1;
+			return p => p.Where(t => t.Cost > 3).Select(t => t.Id).ToList();
 		}
 	}
 
 
-	class MyScoreJsonFormat
-	{
-		public Dictionary<string, int> player = new Dictionary<string, int>();
-		public List<Dictionary<string, int>> player_boardcards = new List<Dictionary<string, int>>();
-		public List<List<Dictionary<string, int>>> player_handcards = new List<List<Dictionary<string, int>>>();
-
-		public Dictionary<string, int> opponent = new Dictionary<string, int>();
-		public List<Dictionary<string, int>> opponent_boardcards = new List<Dictionary<string, int>>();
-
-		public int player_won;
-
-
-		public MyScoreJsonFormat(POGame.POGame poGame)
-		{
-			player = new Dictionary<string, int>();
-			player.Add("HeroClass", (int)poGame.CurrentPlayer.HeroClass);
-			player.Add("BaseMana", poGame.CurrentPlayer.BaseMana);
-			player.Add("DragonInHand", poGame.CurrentPlayer.DragonInHand ? 1 : -1);
-			player.Add("NumCardsPlayedThisTurn", poGame.CurrentPlayer.NumCardsPlayedThisTurn);
-			player.Add("NumFriendlyMinionsThatAttackedThisTurn", poGame.CurrentPlayer.NumFriendlyMinionsThatAttackedThisTurn);
-			player.Add("NumFriendlyMinionsThatDiedThisTurn", poGame.CurrentPlayer.NumFriendlyMinionsThatDiedThisTurn);
-			player.Add("NumMinionsPlayedThisTurn", poGame.CurrentPlayer.NumMinionsPlayedThisTurn);
-			player.Add("NumMinionsPlayerKilledThisTurn", poGame.CurrentPlayer.NumMinionsPlayerKilledThisTurn);
-			player.Add("NumTotemSummonedThisGame", poGame.CurrentPlayer.NumTotemSummonedThisGame);
-			player.Add("HandZoneCount", poGame.CurrentPlayer.HandZone.Count);
-			player.Add("BoardZoneCount", poGame.CurrentPlayer.BoardZone.Count);
-			player.Add("DeckZoneCount", poGame.CurrentPlayer.DeckZone.Count);
-			player.Add("HeroArmor", poGame.CurrentPlayer.Hero.Armor);
-			player.Add("HeroAttackDamage", poGame.CurrentPlayer.Hero.AttackDamage);
-			player.Add("HeroCantBeTargetedByHeroPowers", poGame.CurrentPlayer.Hero.CantBeTargetedByHeroPowers ? 1 : -1);
-			player.Add("HeroCantBeTargetedBySpells", poGame.CurrentPlayer.Hero.CantBeTargetedBySpells ? 1 : -1);
-			player.Add("HeroHealth", poGame.CurrentPlayer.Hero.Health);
-			player.Add("HeroIsFrozen", poGame.CurrentPlayer.Hero.IsFrozen ? 1 : -1);
-			player.Add("HeroIsImmune", poGame.CurrentPlayer.Hero.IsImmune ? 1 : -1);
-			player.Add("HeroNumAttacksThisTurn", poGame.CurrentPlayer.Hero.NumAttacksThisTurn);
-			player.Add("HeroTotalAttackDamage", poGame.CurrentPlayer.Hero.TotalAttackDamage);
-
-			opponent = new Dictionary<string, int>();
-			opponent.Add("HeroClass", (int)poGame.CurrentOpponent.HeroClass);
-			opponent.Add("BaseMana", poGame.CurrentOpponent.BaseMana);
-			opponent.Add("DragonInHand", poGame.CurrentOpponent.DragonInHand ? 1 : -1);
-			opponent.Add("NumCardsPlayedThisTurn", poGame.CurrentOpponent.NumCardsPlayedThisTurn);
-			opponent.Add("NumFriendlyMinionsThatAttackedThisTurn", poGame.CurrentOpponent.NumFriendlyMinionsThatAttackedThisTurn);
-			opponent.Add("NumFriendlyMinionsThatDiedThisTurn", poGame.CurrentOpponent.NumFriendlyMinionsThatDiedThisTurn);
-			opponent.Add("NumMinionsPlayedThisTurn", poGame.CurrentOpponent.NumMinionsPlayedThisTurn);
-			opponent.Add("NumMinionsPlayerKilledThisTurn", poGame.CurrentOpponent.NumMinionsPlayerKilledThisTurn);
-			opponent.Add("NumTotemSummonedThisGame", poGame.CurrentOpponent.NumTotemSummonedThisGame);
-			opponent.Add("HandZoneCount", poGame.CurrentOpponent.HandZone.Count);
-			opponent.Add("BoardZoneCount", poGame.CurrentOpponent.BoardZone.Count);
-			opponent.Add("DeckZoneCount", poGame.CurrentOpponent.DeckZone.Count);
-			opponent.Add("HeroArmor", poGame.CurrentOpponent.Hero.Armor);
-			opponent.Add("HeroAttackDamage", poGame.CurrentOpponent.Hero.AttackDamage);
-			opponent.Add("HeroCantBeTargetedByHeroPowers", poGame.CurrentOpponent.Hero.CantBeTargetedByHeroPowers ? 1 : -1);
-			opponent.Add("HeroCantBeTargetedBySpells", poGame.CurrentOpponent.Hero.CantBeTargetedBySpells ? 1 : -1);
-			opponent.Add("HeroHealth", poGame.CurrentOpponent.Hero.Health);
-			opponent.Add("HeroIsFrozen", poGame.CurrentOpponent.Hero.IsFrozen ? 1 : -1);
-			opponent.Add("HeroIsImmune", poGame.CurrentOpponent.Hero.IsImmune ? 1 : -1);
-			opponent.Add("HeroNumAttacksThisTurn", poGame.CurrentOpponent.Hero.NumAttacksThisTurn);
-			opponent.Add("HeroTotalAttackDamage", poGame.CurrentOpponent.Hero.TotalAttackDamage);
-
-			player_boardcards = new List<Dictionary<string, int>>();
-			foreach (Minion x in poGame.CurrentPlayer.BoardZone)
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "AttackDamage", x.AttackDamage },
-					{ "Health", x.Health},
-					{ "BaseHealth", x.BaseHealth},
-					{ "Cost", x.Cost},
-					{ "HasCharge", x.HasCharge ? 1 : -1 },
-					{ "HasTaunt", x.HasTaunt ? 1 : -1 },
-					{ "HasBattleCry", x.HasBattleCry ? 1 : -1 },
-					{ "HasDeathrattle", x.HasDeathrattle ? 1 : -1 },
-					{ "ZonePosition", x.ZonePosition }
-				};
-				player_boardcards.Add(curcard);
-			}
-
-			opponent_boardcards = new List<Dictionary<string, int>>();
-			foreach (Minion x in poGame.CurrentOpponent.BoardZone)
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "AttackDamage", x.AttackDamage },
-					{ "Health", x.Health},
-					{ "BaseHealth", x.BaseHealth},								
-					{ "Cost", x.Cost},
-					{ "HasCharge", x.HasCharge ? 1 : -1 },
-					{ "HasTaunt", x.HasTaunt ? 1 : -1 },
-					{ "HasBattleCry", x.HasBattleCry ? 1 : -1 },
-					{ "HasDeathrattle", x.HasDeathrattle ? 1 : -1 },
-					{ "ZonePosition", x.ZonePosition }
-				};
-				opponent_boardcards.Add(curcard);
-			}
-
-			player_handcards = new List<List<Dictionary<string, int>>>();
-
-			var handcards_minions = new List<Dictionary<string, int>>();
-			foreach (Minion x in poGame.CurrentPlayer.HandZone.OfType<Minion>())
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "AttackDamage", x.AttackDamage },
-					{ "BaseHealth", x.BaseHealth},
-					{ "Cost", x.Cost},
-					{ "HasCharge", x.HasCharge ? 1 : -1 },
-					{ "HasTaunt", x.HasTaunt ? 1 : -1 },
-					{ "HasBattleCry", x.HasBattleCry ? 1 : -1 },
-					{ "HasDeathrattle", x.HasDeathrattle ? 1 : -1 },
-					{ "ZonePosition", x.ZonePosition }
-				};
-				handcards_minions.Add(curcard);
-			}
-			player_handcards.Add(handcards_minions);
-
-
-			var handcards_spells = new List<Dictionary<string, int>>();
-			foreach (Spell x in poGame.CurrentPlayer.HandZone.OfType<Spell>())
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "Id", x.Id}
-				};
-				handcards_minions.Add(curcard);
-			}
-			player_handcards.Add(handcards_spells);
-
-			var handcards_weapons = new List<Dictionary<string, int>>();
-			foreach (Weapon x in poGame.CurrentPlayer.HandZone.OfType<Weapon>())
-			{
-				var curcard = new Dictionary<string, int>
-				{
-					{ "Cost", x.Cost},
-					{ "AttackDamage", x.AttackDamage },
-					{ "Durability", x.Durability},
-					{ "Damage", x.Damage}
-
-				};
-				handcards_minions.Add(curcard);
-			}
-			player_handcards.Add(handcards_weapons);
-
-		}
-
-		public void SetPlayerWon(PlayState playState)
-		{
-			player_won = ((int)playState) == 4 ? 1 : ((int)playState) == 5 ? 0 : -1;
-		}
-	}
 
 
 }

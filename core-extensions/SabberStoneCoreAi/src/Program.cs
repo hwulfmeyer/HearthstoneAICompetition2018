@@ -43,16 +43,14 @@ namespace SabberStoneCoreAi
 						GameConfig gameConfig = new GameConfig
 						{
 							StartPlayer = -1,
-							Player1HeroClass = (CardClass)Rnd.Next(3, 11),
-							Player2HeroClass = (CardClass)Rnd.Next(3, 11),
-							//Player1Deck = Decks.MidrangeJadeShaman,
-							//Player2Deck = Decks.MidrangeJadeShaman,
-							FillDecks = true,
-							Shuffle = true,
+							Player1HeroClass = CardClass.WARRIOR,
+							Player2HeroClass = CardClass.WARRIOR,
+							Player1Deck = Decks.AggroPirateWarrior,
+							Player2Deck = Decks.AggroPirateWarrior,
 							Logging = false
 						};
 
-						AbstractAgent player1 = new MyAgent("trainingdata_chunk_"+k+".json"); gameConfig.Player1Name = "Player1";
+						AbstractAgent player1 = new MyAgent(); gameConfig.Player1Name = "Player1";
 						AbstractAgent player2 = new RandomAgentLateEnd(); gameConfig.Player2Name = "Player2";
 						var gameHandler = new POGameHandler(gameConfig, player1, player2, debug: false);
 						gameHandler.PlayGames(5, true);
